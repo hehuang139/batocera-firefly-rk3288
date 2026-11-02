@@ -1,0 +1,100 @@
+{
+  "linux": "6.1.55",
+  "batocera_branch": "39",
+  "batocera_commit": "9cbda965212c51ecebb4b79c2b77c91f55715bb7",
+  "patches": [
+    {
+      "patch": "linux-1000-drm-rockchip.patch",
+      "source_sha256": "75d209603b9e27a3756427946f5faae29189e521bec385f6c228b564dd5ff15d",
+      "selected_sha256": "ac1e0e71db50a1a0a6298b68412c21770204dc200c33c5a1c91df15aa9b8a5d3",
+      "files": [
+        "arch/arm/boot/dts/rk3288.dtsi"
+      ],
+      "returncode": 0,
+      "output": "patching file arch/arm/boot/dts/rk3288.dtsi\npatching file arch/arm/boot/dts/rk3288.dtsi\npatching file arch/arm/boot/dts/rk3288.dtsi\nHunk #2 succeeded at 1223 (offset 1 line).\n"
+    },
+    {
+      "patch": "linux-2000-v4l2-wip-rkvdec-hevc.patch",
+      "source_sha256": "5efd337c4416e1169b0b7956086a66a320d5bd1cd89be21025ff70d6f430b11f",
+      "selected_sha256": "4219623907e6808b3ba90017edaf85f502435e10fcf3da386fa6c804649383a9",
+      "files": [
+        "arch/arm/boot/dts/rk3288.dtsi"
+      ],
+      "returncode": 0,
+      "output": "patching file arch/arm/boot/dts/rk3288.dtsi\nHunk #1 succeeded at 1249 (offset 1 line).\nHunk #2 succeeded at 1275 (offset 1 line).\n"
+    },
+    {
+      "patch": "linux-2001-v4l2-wip-iep-driver.patch",
+      "source_sha256": "58925a7e8a9d59d48b72af8bb7017c115ed2fc9b763cdd472fba03001728181c",
+      "selected_sha256": "783a482afa57f89cce9f90a6e2f473339057eed2e1b742284ba3e6eb816a7f7f",
+      "files": [
+        "arch/arm/boot/dts/rk3288.dtsi"
+      ],
+      "returncode": 0,
+      "output": "patching file arch/arm/boot/dts/rk3288.dtsi\n"
+    },
+    {
+      "patch": "linux-2102-RK3288-DTSI-rk3288-Add-missing-SPI2-pinctrl.patch",
+      "source_sha256": "683188c167e72f71b52b78b39d4ab0890245a5cfb1f8495d4b9f7d62fef3ef2b",
+      "selected_sha256": "6a4536cb553c161a76367ee04daf24b2d055c51d81ecc795720c73ca62528912",
+      "files": [
+        "arch/arm/boot/dts/rk3288.dtsi"
+      ],
+      "returncode": 0,
+      "output": "patching file arch/arm/boot/dts/rk3288.dtsi\nHunk #1 succeeded at 311 (offset -23 lines).\n"
+    },
+    {
+      "patch": "linux-2112-ARM-DTSI-rk3288-disable-serial-dmas.patch",
+      "source_sha256": "82b3d40d2dd1b31a0c29a2734973c3d6afaa3c1fccf49d74704b17d59cce0240",
+      "selected_sha256": "82b3d40d2dd1b31a0c29a2734973c3d6afaa3c1fccf49d74704b17d59cce0240",
+      "files": [
+        "arch/arm/boot/dts/rk3288.dtsi"
+      ],
+      "returncode": 0,
+      "output": "patching file arch/arm/boot/dts/rk3288.dtsi\nHunk #1 succeeded at 378 (offset -42 lines).\nHunk #2 succeeded at 391 (offset -42 lines).\nHunk #3 succeeded at 417 (offset -42 lines).\nHunk #4 succeeded at 430 (offset -42 lines).\n"
+    },
+    {
+      "patch": "linux-2113-arm-dtsi-rk3288-add-GPU-500-Mhz-OPP.patch",
+      "source_sha256": "fefa31c8f27e68e25ddd4ed9336c5db7abb9287484ba049de5807055878742f8",
+      "selected_sha256": "f29c7cf7a83ba29843592ace0b6a5a59add58e9fc7bc7c374a0e4d98312150b0",
+      "files": [
+        "arch/arm/boot/dts/rk3288.dtsi"
+      ],
+      "returncode": 0,
+      "output": "patching file arch/arm/boot/dts/rk3288.dtsi\nHunk #1 succeeded at 1314 (offset 2 lines).\n"
+    },
+    {
+      "patch": "linux-2117-DTS_rearrange_thermal_zones.patch",
+      "source_sha256": "d08b2a902e78f2e4b3b6ab0504ce299fad696e4298e2163104800e5d9bce1a30",
+      "selected_sha256": "d08b2a902e78f2e4b3b6ab0504ce299fad696e4298e2163104800e5d9bce1a30",
+      "files": [
+        "arch/arm/boot/dts/rk3288.dtsi"
+      ],
+      "returncode": 0,
+      "output": "patching file arch/arm/boot/dts/rk3288.dtsi\nHunk #1 succeeded at 448 (offset -19 lines).\nHunk #2 succeeded at 519 (offset -13 lines).\n"
+    }
+  ],
+  "excluded": [
+    {
+      "patch": "linux-RK3288-1.8GHz-and-boost.patch",
+      "reason": "Preserve upstream Firefly CPU OPP table; omit 1.8 GHz and boost additions."
+    }
+  ],
+  "files": {
+    "arch/arm/boot/dts/rk3288-firefly.dts": "50598df4d7bb7e9e4af81968146aaabf634f1cf0c294339a5f0057856cf220f8",
+    "arch/arm/boot/dts/rk3288-firefly.dtsi": "42607afd0092a84fa07a8907eca452007d5b0b2f8d16562d97cadd6cdb4cfde0",
+    "arch/arm/boot/dts/rk3288.dtsi": "4f93c040f53f02233510aa8e9909ff420bafb2ace8d846ac43044fe1964489dc",
+    "include/dt-bindings/clock/rk3288-cru.h": "80997be4399b3c7d0e8fcabe1c8af3211d7a0223d6278342836a33867ae05ef8",
+    "include/dt-bindings/gpio/gpio.h": "316d53bb1a58752ab9d8fa47ab8a233759f12da5b3cd0569a92cd2d4941edba0",
+    "include/dt-bindings/input/input.h": "2f7ae2ec64f1b033e9c3d34d9128c0851f86cfffa010a890b46ac49aae4f17ea",
+    "include/dt-bindings/input/linux-event-codes.h": "dde1d3ea45cd7f42e643cd9ccd5663156b7c19ba5a1b6ad16a457847fd350b13",
+    "include/dt-bindings/interrupt-controller/arm-gic.h": "a0e0b6ab839734b481d8842769f45c88cd6912f8f97ed0b32a9a45c5d9d65fda",
+    "include/dt-bindings/interrupt-controller/irq.h": "392400a309a54ea5b1a2ac2e52773d3ab68e07323109b9aed88a69fedc74e082",
+    "include/dt-bindings/pinctrl/rockchip.h": "73da3a36fd77e90a44a6fd6d12ed9bb2f1eba9898456cd199ae3ac85d1f31397",
+    "include/dt-bindings/power/rk3288-power.h": "9ff51e1fc6d4d6ec22081924b8e0a1afaa9305475ebd1897fed8ae6022772175",
+    "include/dt-bindings/soc/rockchip,boot-mode.h": "3cc069e22bfb455e8810cebf046984e21e4ae60bd7d9ae697bbade46117c4eef",
+    "include/dt-bindings/thermal/thermal.h": "d74d498871c3bf3d6aa985ad01c15dfa916614369dbcd832bdcb9d2d45b15e08",
+    "include/uapi/linux/input-event-codes.h": "dde1d3ea45cd7f42e643cd9ccd5663156b7c19ba5a1b6ad16a457847fd350b13"
+  },
+  "files_representation": "Vendored source bytes; the Linux input-event-codes symlink is dereferenced for portable archive handling."
+}

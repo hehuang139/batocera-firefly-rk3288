@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.log
+/*.img
+/*.img.gz
+/*.img.xz
+/source/build/
+/source/u-boot-2024.01/
+/source/u-boot-v*.tar.gz
+/source/*.preprocessed.dts
+/source/rk3288-firefly.dtb
+/boot-assets/*.img
+/boot-assets/*.dtb
