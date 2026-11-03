@@ -2,7 +2,9 @@
 
 2026-11-04，在原版 Firefly-RK3288 的 eMMC 安装上，修正设备树并补充 AP6335 板级 NVRAM 后，**无线枚举、扫描和一次软件重启后的自动恢复均已验证**。重启后启动 ID 改变，板级 NVRAM 自动出现，SDIO、`wlan0` 与 BCM4339/2 固件 `6.37.39.113` 正常初始化；`connmanctl scan wifi` 完成，发现 17 个无线服务（重启前为 20 个）。
 
-Batocera 的 `wifi.enabled = 1`，`batocera-wifi list` 已能输出非空无线网络列表，系统列表接口也已验证。本次 ConnMan 状态为 `Connected = false`、`Tethering = false`，无线接口尚无 IP；没有验证连接路由器、2.4 / 5 GHz 各频段、吞吐量、游戏文件传输和长期稳定性。一次软件重启通过也不等于多次冷启动验收。有线 SSH 已验证可用，传输步骤见 [传输游戏](TRANSFER-GAMES.md)。
+Batocera 的 `wifi.enabled = 1`，`batocera-wifi list` 已能输出非空无线网络列表。用户配置网络后，ConnMan 显示 `Connected = true`、`Tethering = false`，`wlan0` 为 UP 并取得 DHCP IPv4；通过该无线地址完成 SSH 登录，主机密钥与同一块板匹配，当时有线接口没有 IPv4。
+
+关联与无线 SSH 测试发生在同一启动周期，**尚未验证关联配置在重启后自动恢复**；此前一次软件重启验证的是 NVRAM、驱动和扫描恢复。2.4 / 5 GHz 各频段、吞吐量、游戏文件传输、长期稳定性及多次冷启动仍未验收。传输步骤见 [传输游戏](TRANSFER-GAMES.md)。
 
 ## 第一处阻断：SDIO 供电描述与电源时序
 
@@ -56,6 +58,12 @@ python3 make-image.py --variant emmc --wifi-firmware wifi-bundle \
 本次现场修复范围是 **eMMC 版本**。SD 版本的 DTS 虽然也编译通过，但其 Linux 配置禁用 eMMC；在同样缺少有效 CPU / 设备树序列号的板上，无法取得 eMMC CID，脚本会拒绝生成备用 MAC。TF 卡 CID 不作为替代来源，不能据此宣称 SD 版本 Wi-Fi 已可用。
 
 对应整盘镜像已完成组装、FAT 文件回读和 RKDevTool 六段生成 / 重组校验；重组 SHA-256 与完整镜像相同。现场是在历史 `emmc-test1` 安装上部署相同 DTB 和早期文件，随后通过一次软件重启验证自动恢复。新整盘镜像尚未另行完整烧录上板，文件验证与现场更新验证的范围应分别理解。
+
+## 有线与无线 IP
+
+有线 `eth0` 与无线 `wlan0` 是不同网卡，各自通过 DHCP 获取地址。切换到 Wi-Fi 后应查看 `ip -4 address show wlan0`；不能继续假定先前的有线 IP 就是无线 IP。
+
+当前镜像还观察到有线 MAC 在不同启动间变化。U-Boot 配置启用 `CONFIG_NET_RANDOM_ETHADDR=y`，同时使用不持久化的 `CONFIG_ENV_IS_NOWHERE=y`；运行设备树中的有线 MAC 也随启动变化，路由器因而可能将其视为新设备。此有线身份问题尚未修复。需要固定无线 IP 时，可在路由器中为已确认稳定的无线 MAC 设置 DHCP 地址保留；有线应先固定 MAC，再保留地址。
 
 ## 回退现场更新
 
