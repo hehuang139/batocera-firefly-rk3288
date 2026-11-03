@@ -4,6 +4,12 @@ set -euo pipefail
 # Run from any directory. No /dev device is read or written.
 TASK_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 IMAGE=${FIREFLY_BUILD_IMAGE:-firefly-batocera-build:20261102}
+VARIANT=${1:-sd}
+case "$VARIANT" in
+  sd) BUILD_DIR=build; BOOT_TARGET=mmc1; LOCAL_VERSION=-firefly-sd1 ;;
+  emmc) BUILD_DIR=build-emmc; BOOT_TARGET=mmc0; LOCAL_VERSION=-firefly-emmc1 ;;
+  *) printf 'Usage: %s [sd|emmc]\n' "$0" >&2; exit 2 ;;
+esac
 ARCHIVE="$TASK_DIR/u-boot-v2024.01.tar.gz"
 if [[ ! -f "$ARCHIVE" ]]; then
   curl -fL --retry 3 'https://codeload.github.com/u-boot/u-boot/tar.gz/refs/tags/v2024.01' -o "$ARCHIVE"
@@ -14,17 +20,20 @@ if [[ ! -d "$TASK_DIR/u-boot-2024.01" ]]; then
 fi
 docker run --rm --user "$(id -u):$(id -g)" \
   -e SOURCE_DATE_EPOCH=1704672000 \
+  -e "FIREFLY_UBOOT_DIR=$BUILD_DIR" -e "FIREFLY_BOOT_TARGET=$BOOT_TARGET" \
+  -e "FIREFLY_LOCAL_VERSION=$LOCAL_VERSION" \
   -v "$TASK_DIR:/build" -w /build/u-boot-2024.01 "$IMAGE" \
   bash -c '
     set -euo pipefail
-    make CROSS_COMPILE=arm-linux-gnueabihf- O=../build firefly-rk3288_defconfig
-    scripts/config --file ../build/.config \
+    output="../$FIREFLY_UBOOT_DIR"
+    make CROSS_COMPILE=arm-linux-gnueabihf- O="$output" firefly-rk3288_defconfig
+    scripts/config --file "$output/.config" \
       --disable ENV_IS_IN_MMC --enable ENV_IS_NOWHERE \
       --disable SILENT_CONSOLE --enable BOOTSTD_FULL \
       --set-val BOOTDELAY 5 \
-      --set-str BOOTCOMMAND "setenv boot_targets mmc1; bootflow scan -lb" \
-      --set-str LOCALVERSION "-firefly-sd1"
-    make CROSS_COMPILE=arm-linux-gnueabihf- O=../build olddefconfig
-    make -j8 CROSS_COMPILE=arm-linux-gnueabihf- O=../build
+      --set-str BOOTCOMMAND "setenv boot_targets $FIREFLY_BOOT_TARGET; bootflow scan -lb" \
+      --set-str LOCALVERSION "$FIREFLY_LOCAL_VERSION"
+    make CROSS_COMPILE=arm-linux-gnueabihf- O="$output" olddefconfig
+    make -j8 CROSS_COMPILE=arm-linux-gnueabihf- O="$output"
   '
-sha256sum "$TASK_DIR/build/idbloader.img" "$TASK_DIR/build/u-boot-dtb.img" "$TASK_DIR/build/u-boot-rockchip.bin"
+sha256sum "$TASK_DIR/$BUILD_DIR/idbloader.img" "$TASK_DIR/$BUILD_DIR/u-boot-dtb.img" "$TASK_DIR/$BUILD_DIR/u-boot-rockchip.bin"

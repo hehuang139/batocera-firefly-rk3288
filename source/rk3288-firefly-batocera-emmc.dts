@@ -1,0 +1,7 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+// Original Firefly-RK3288: boot Batocera from the eMMC user area.
+#include "rk3288-firefly-batocera.dts"
+
+&emmc {
+    status = "okay";
+};

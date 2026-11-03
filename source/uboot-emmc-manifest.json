@@ -1,0 +1,36 @@
+{
+  "upstream": "https://github.com/u-boot/u-boot",
+  "version": "v2024.01",
+  "source_archive_url": "https://codeload.github.com/u-boot/u-boot/tar.gz/refs/tags/v2024.01",
+  "source_archive_sha256": "a03c3c2ba9d2bea5176c6406f1f3429a79e1147be242f5a07dbd9e89b3cc83c4",
+  "source_date_epoch": 1704672000,
+  "defconfig": "firefly-rk3288_defconfig",
+  "docker_image": "firefly-batocera-build:20261102",
+  "configuration_changes": [
+    "ENV_IS_IN_MMC=n",
+    "ENV_IS_NOWHERE=y",
+    "SILENT_CONSOLE=n",
+    "BOOTSTD_FULL=y",
+    "BOOTDELAY=5",
+    "BOOTCOMMAND=setenv boot_targets mmc0; bootflow scan -lb",
+    "LOCALVERSION=-firefly-emmc1"
+  ],
+  "artifacts": {
+    "idbloader.img": {
+      "size_bytes": 63488,
+      "sha256": "bf82871726471c2f8e229423597d8b68641dc63d842bb67eda4c2ab5611d0ea0",
+      "disk_offset_bytes": 32768
+    },
+    "u-boot-dtb.img": {
+      "size_bytes": 554696,
+      "sha256": "f5b5ee8e934355908e8f8c43615b717de64143fa3ed0029c5396d2c53e847588",
+      "disk_offset_bytes": 8388608
+    },
+    "u-boot-rockchip.bin": {
+      "size_bytes": 8910536,
+      "sha256": "f3366f4a6121e09ad12870c5ad4b190461df302ac399ecb3e8d0e262667302b0",
+      "disk_offset_bytes": 32768
+    }
+  },
+  "variant": "eMMC user-area, mainline TPL/SPL, original Firefly-RK3288"
+}
