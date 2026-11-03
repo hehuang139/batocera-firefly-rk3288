@@ -22,7 +22,7 @@ https://mirrors.o2switch.fr/batocera/miqi/stable/last/batocera-rk3288-miqi-39-20
 ./build-boot-assets.sh emmc
 ```
 
-顶层脚本创建 Docker 工具环境，运行 `source/rebuild-u-boot.sh emmc` 和 `source/build-dtb.sh emmc`，将引导文件及 `manifest.json` 写入 `boot-assets/emmc/`。`source/build-emmc/` 保留 U-Boot 编译产物。`source/uboot-emmc.config` 与 `source/uboot-emmc-manifest.json` 记录此次成功启动版本的配置和哈希。
+顶层脚本创建 Docker 工具环境，运行 `source/rebuild-u-boot.sh emmc` 和 `source/build-dtb.sh emmc`，将引导文件及 `manifest.json` 写入 `boot-assets/emmc/`。`source/build-emmc/` 保留 U-Boot 编译产物。`source/uboot-emmc.config` 与 `source/uboot-emmc-manifest.json` 是历史成功启动版本的 U-Boot 配置和产物记录，不包含当前 Linux Wi-Fi DTB；本次生成文件以 `boot-assets/emmc/manifest.json` 中的实际哈希为准。
 
 SD 实验版本使用 `./build-boot-assets.sh sd`，产物位于 `source/build/`、`boot-assets/`。不传参数时保持 SD 默认行为。两个版本的构建目录和清单独立；组装脚本核对版本、U-Boot 目标、DTB 和各产物哈希，拒绝混用。
 
@@ -43,7 +43,23 @@ docker run --rm --user "$(id -u):$(id -g)" \
 
 脚本核对引导清单、DTB 的 eMMC 状态和基础 SHA-256，输出新的普通 `.img` 及 `.img.manifest.json`，拒绝覆盖已有路径，不接受块设备。保留官方内核、initrd、SquashFS 和 SHARE 分区，替换引导区、DTB、extlinux、板型标识，加入日志脚本。
 
+组装时默认在临时目录下载固定来源的 AP6335 NVRAM 和许可证，校验哈希后将 `boot-custom.sh` 与 `firefly-wifi/` 加入 FAT 启动分区。早期脚本在 udev 之前安装板级 NVRAM，来源及实际哈希另记入镜像旁清单的 `wifi_firmware` 字段。启动机制、MAC 处理和实际验证范围见 [Wi-Fi 修复与验证](WIFI.md)。
+
+如需复用已下载文件或离线组装，先在联网环境准备新目录，再把它传给组装脚本；脚本仍会核验文件包与当前准备器是否匹配：
+
+```sh
+python3 tools/prepare_wifi_firmware.py out/wifi-firmware
+docker run --rm --user "$(id -u):$(id -g)" \
+  -v "$PWD:/package" -w /package firefly-batocera-build:20261102 \
+  python3 make-image.py --variant emmc --wifi-firmware out/wifi-firmware \
+  batocera-rk3288-miqi-39-20240301.img.gz emmc.img
+```
+
+上述准备命令只生成普通文件包，不会写入开发板。现有系统如已有自定义 `boot-custom.sh`，更新时应先合并原有逻辑，不要直接覆盖。
+
 SD 镜像将参数改为 `--variant sd`，并使用不同输出文件名。可用 `gzip -1 -n sd.img` 压缩后交给写卡工具；RKDevTool 打包需要未压缩的 eMMC `.img`。
+
+Wi-Fi 的现场验证仅针对 eMMC 安装。SD 版本禁用 eMMC，在 CPU / 设备树序列号缺失或全零时，没有可用的 eMMC CID 回退，开机脚本会拒绝生成备用 MAC；不能把两种 DTS 均编译通过等同于 SD Wi-Fi 已验证。
 
 布局（每扇区 512 字节）：
 
@@ -51,13 +67,13 @@ SD 镜像将参数改为 `--variant sd`，并使用不同输出文件名。可�
 | --- | --- | --- |
 | MBR | 0 | 512 字节 |
 | Firefly idbloader | 32 KiB / 64 | 63,488 字节 |
-| Firefly u-boot-dtb.img | 8 MiB / 16,384 | 本次 eMMC 554,696 字节；SD 554,688 字节 |
+| Firefly u-boot-dtb.img | 8 MiB / 16,384 | 历史测试 eMMC 554,696 字节；SD 554,688 字节，以当前清单为准 |
 | BATOCERA FAT32 | 16 MiB / 32,768 | 4 GiB 分区 |
 | SHARE ext4 | 4,311,744,512 / 8,421,376 | 初始 512 MiB，首启扩容 |
 
 完整 `.img` 为 4,848,615,424 字节。原 MiQi loader 和持久环境区域在写入 Firefly loader 前清零。新 U-Boot 使用内存环境；自己的设备树中 eMMC 为 `mmc0`、SD 为 `mmc1`，不可套用于未知旧 U-Boot。
 
-不同 mtools 写入时间会改变整盘镜像哈希；关键引导文件可比对相应 `source/uboot*-manifest.json` 和 [测试记录](TESTING.md)。
+不同 mtools 写入时间会改变整盘镜像哈希。`source/uboot*-manifest.json` 和 [测试记录](TESTING.md) 中的值用于识别相应历史产物；当前引导与 Linux DTB 使用新生成的 `boot-assets[/emmc]/manifest.json`，整盘镜像使用旁边的 `.img.manifest.json`。Wi-Fi 修复后的 DTB 有意改变，不应要求它与修复前文件逐字节相同。
 
 ## 生成 RKDevTool 分段包
 
@@ -79,4 +95,4 @@ USB Loader 来自 Rockchip `rkbin` 固定提交 `3e288fe814e059dd06833495f845cab
 
 从 [Radxa 工具目录](https://dl.radxa.com/tools/windows/) 获取 RKDevTool 2.96 和 Driver Assistant 5.14，将 `out/rkdevtool/` 内的 `Image/` 和 CFG 放到 RKDevTool.exe 所在目录，按 [eMMC 烧录说明](FLASHING-EMMC.md) 操作。输出不是 RKFW `update.img`，不用于“升级固件”。Windows 工具不随仓库分发。
 
-2026-11-04，在原构建环境完整运行两种引导构建、eMMC 组装、USB Loader 合成和分段打包；两种版本的 idbloader、U-Boot 及 DTB 均与历史测试产物逐字节一致，六段重组校验通过。此结果验证公开配方；实际成功启动的是测试记录中的 `emmc-test1` 文件。
+2026-11-04，两种引导和 Wi-Fi 修正版 DTS 均编译通过；含早期 NVRAM 安装及 MMC CID 回退的 eMMC 整盘镜像已完成组装、FAT 回读和 RKDevTool 六段重组校验，完整镜像与重组 SHA-256 一致。现场在历史 `emmc-test1` 安装上部署相同 DTB 和早期文件，已通过一次软件重启后的 NVRAM 自动安装、无线枚举、扫描和系统网络列表验证。新整盘镜像尚未另行完整烧录上板。历史构建、哈希与实测范围见 [测试记录](TESTING.md)。

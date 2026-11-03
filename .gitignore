@@ -20,3 +20,4 @@ __pycache__/
 /boot-assets/emmc/batocera.board
 /*.img.manifest.json
 /out/
+/wifi-firmware/

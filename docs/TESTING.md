@@ -4,7 +4,7 @@
 
 用户在原版 Firefly-RK3288 上使用 RKDevTool 2.96 分段写入 eMMC 后，确认 Batocera 启动成功，并报告手柄可用。手柄型号、接口及游戏内测试细节未提供；这次结果不代表所有手柄或全部游戏已验证。
 
-随后通过有线 SSH 只读检查，确认有线网络可用，`/userdata` 位于 `mmcblk1p2`，SHARE 分区已扩容至约 10.5 GiB。用户报告的 Wi-Fi 搜索不到网络也已确认：系统没有无线接口，SDIO 设备目录为空；`ff0d0000.mmc` 报 OCR / regulator 初始化错误，实际运行设备树将 SDIO0 的 `vmmc-supply` 指向 5 V `vcc_sys`。完整证据及尚需核对的供电时序见 [Wi-Fi 已知问题](WIFI.md)。本次只分析和记录，未部署 Wi-Fi 修复。
+随后通过有线 SSH 检查，确认有线网络可用，`/userdata` 位于 `mmcblk1p2`，SHARE 分区已扩容至约 10.5 GiB。Wi-Fi 最初因 SDIO 初始化及板级 NVRAM 问题不可用；修正后已通过一次软件重启验证，启动 ID 改变，NVRAM 自动安装，SDIO、`wlan0`、BCM4339/2 固件 `6.37.39.113` 恢复。扫描重启前发现 20 个服务、重启后发现 17 个服务；路由器关联、各频段、速度和长期稳定性尚未验证。证据和机制见 [Wi-Fi 修复与验证](WIFI.md)。
 
 | 项目 | 现场记录 |
 | --- | --- |
@@ -21,17 +21,17 @@
 | 手柄 | 用户报告可用；未提供型号、接口及游戏内测试细节 |
 | 有线网络 | 已通过现场 SSH 登录验证 |
 | SHARE 扩容 | 已确认约 10.5 GiB，挂载于 `/userdata` |
-| Wi-Fi | 已知失败；SDIO 设备未枚举，供电 / OCR 初始化错误，见 [分析](WIFI.md) |
+| Wi-Fi | BCM4339 枚举与一次软件重启后的自动恢复、扫描通过；重启后 17 个服务，见 [分析](WIFI.md) |
 
 该镜像使用主线 TPL/SPL：`idbloader` 位于 32 KiB，U-Boot 位于 8 MiB；U-Boot 扫描 `mmc0`，Linux 的 eMMC 与 SD 控制器均启用，U-Boot 使用内存环境。烧录六段连续覆盖 4,848,615,424 字节，头部最后写入。配置与复现步骤见 [eMMC 烧录说明](FLASHING-EMMC.md)。
 
-本次已启动的 `emmc-test1` 镜像 SHA-256：
+本次最初启动的 `emmc-test1` 镜像 SHA-256（后续现场 Wi-Fi 更新了 DTB / NVRAM，不再是该整盘文件的原样运行状态）：
 
 ```text
 bc38fe7350c18f157a6d835cc88ce5b1e725ee05a2d1d4587a95815f413bfaca
 ```
 
-其引导产物 SHA-256：
+该历史镜像的 U-Boot 引导产物 SHA-256（不包含后续 Linux Wi-Fi DTB）：
 
 | 文件 | SHA-256 |
 | --- | --- |
@@ -51,7 +51,10 @@ bc38fe7350c18f157a6d835cc88ce5b1e725ee05a2d1d4587a95815f413bfaca
 | 其他 USB 外设 | 尚未单独验证 |
 | SHARE 数据分区自动扩容 | 已验证；约 10.5 GiB |
 | 有线网络与 SSH | 已通过现场 SSH 登录验证 |
-| Wi-Fi | 已知初始化问题，无 SDIO 设备或无线接口；见 [分析](WIFI.md) |
+| Wi-Fi SDIO / 驱动初始化与扫描 | BCM4339 已枚举，重启后扫描完成、17 个无线服务，`batocera-wifi list` 返回非空列表；见 [分析](WIFI.md) |
+| Wi-Fi 开机自动恢复 | 已通过一次软件重启验证；NVRAM 自动安装、`wlan0` 恢复 |
+| Wi-Fi 关联路由器、频段与传输性能 | 尚未验证 |
+| SD 版本 Wi-Fi | 尚未验证；eMMC 被禁用，无有效 CPU / 设备树序列号时不能使用 CID 回退 |
 | 蓝牙 | 尚未单独验证 |
 | 游戏文件网络传输 | 尚未单独验证 |
 | HDMI / 模拟音频 | 尚未单独验证 |
@@ -62,7 +65,11 @@ bc38fe7350c18f157a6d835cc88ce5b1e725ee05a2d1d4587a95815f413bfaca
 
 2026-11-02，使用 Ubuntu 22.04 x86_64 主机和隔离的 Ubuntu 22.04 ARM 交叉编译环境完成 SD 实验版本的初始构建。随后 eMMC 测试版本重新编译了引导和设备树，并检查 eMMC / SD 节点均为 `okay`、U-Boot `mmc0` 指向 `/mmc@ff0f0000`。
 
-2026-11-04，新增的公开双版本构建流程已完成 SD / eMMC 重新构建、镜像组装与分段打包验证。上述实际启动和 SSH 结果仍对应历史 `emmc-test1` 镜像，未将新构建产物的文件验证等同于新增上板验证。
+2026-11-04，新增的公开双版本构建流程已完成 SD / eMMC 重新构建、镜像组装与分段打包验证。实际启动和 SSH 验证以历史 `emmc-test1` 安装为基础，随后现场更新 Wi-Fi DTB 与 NVRAM；新整盘构建产物尚未单独上板验证。
+
+Wi-Fi 修正版的 SD / eMMC DTS 均已编译通过。以下历史哈希不标识当前 Linux DTB；当前构建产物应使用新生成的 `boot-assets[/emmc]/manifest.json` 和镜像旁清单核对。
+
+包含 Wi-Fi DTB、早期安装文件及 MMC CID 备用标识逻辑的整盘镜像已完成构建、FAT 回读和 RKDevTool 分段重组校验；完整文件及六段重组的 SHA-256 均为 `cc30155784d9762044e8bf603f9a47a1aedcdedd377a360861bb1adc3e8b265a`。现场以已有 `emmc-test1` 安装更新相同文件后完成重启验证；该新整盘文件尚未另行完整烧录上板。
 
 | 检查 | 结果 |
 | --- | --- |
@@ -76,7 +83,7 @@ bc38fe7350c18f157a6d835cc88ce5b1e725ee05a2d1d4587a95815f413bfaca
 | extlinux / DTB / 板型文件 | 与预期输入逐字节一致 |
 | 最终内核、initrd、SquashFS 校验 | 与官方输入一致 |
 | SD gzip 压缩完整性 | 通过 |
-| eMMC 分段配置与重组 | 六段无间隙、无重叠；重组 SHA-256 与完整镜像一致 |
+| 当前 Wi-Fi 修正版 eMMC 分段配置与重组 | 六段生成成功，无间隙或重叠；重组 SHA-256 与当前完整镜像一致 |
 
 共同输入与初始 SD 产物的 SHA-256：
 

@@ -20,6 +20,16 @@
             sound-dai = <&hdmi>;
         };
     };
+
+    sdio_pwrseq: sdio-pwrseq {
+        compatible = "mmc-pwrseq-simple";
+        clocks = <&hym8563>;
+        clock-names = "ext_clock";
+        pinctrl-names = "default";
+        pinctrl-0 = <&wifi_enable>;
+        reset-gpios = <&gpio4 RK_PD4 GPIO_ACTIVE_LOW>;
+        post-power-on-delay-ms = <200>;
+    };
 };
 
 // This first bring-up image exposes only microSD to Linux.
@@ -34,4 +44,29 @@
 
 &sdmmc {
     max-frequency = <50000000>;
+};
+
+&hym8563 {
+    assigned-clocks = <&hym8563>;
+    assigned-clock-rates = <32768>;
+};
+
+&pinctrl {
+    wifi {
+        wifi_enable: wifi-enable {
+            rockchip,pins = <4 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+    };
+};
+
+&sdio0 {
+    // The inherited vbat_wl alias points at the shared 5 V vcc_sys rail,
+    // outside MMC OCR voltages. The module has a fixed external supply;
+    // do not request voltage changes on that rail. Keep the 1.8 V IO supply.
+    /delete-property/ vmmc-supply;
+    mmc-pwrseq = <&sdio_pwrseq>;
+    cap-sd-highspeed;
+    cap-sdio-irq;
+    max-frequency = <50000000>;
+    keep-power-in-suspend;
 };

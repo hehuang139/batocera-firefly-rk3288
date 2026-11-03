@@ -4,7 +4,7 @@
 
 ## 本项目新增内容
 
-MIT 适用于 `make-image.py`、`package-rkdevtool.py`、`collect-logs.sh`、`build-boot-assets.sh`、`tools/*.py`、`source/write-boot-manifest.py`、`source/rebuild-u-boot.sh`、`source/build-dtb.sh`、`source/Dockerfile`、各版本 `extlinux.conf` 以及项目说明文档。Firefly wrapper DTS 继续使用文件头的双重许可；U-Boot 派生配置继续使用上游许可。
+MIT 适用于 `make-image.py`、`package-rkdevtool.py`、`collect-logs.sh`、`build-boot-assets.sh`、`tools/*.py`、`tools/firefly-boot-custom.sh`、`source/write-boot-manifest.py`、`source/rebuild-u-boot.sh`、`source/build-dtb.sh`、`source/Dockerfile`、各版本 `extlinux.conf` 以及项目说明文档。Firefly wrapper DTS 继续使用文件头的双重许可；U-Boot 派生配置继续使用上游许可。
 
 许可全文位于 `LICENSE` 和 `LICENSES/`。
 
@@ -47,6 +47,14 @@ Firefly 原始 DTS 作者版权声明保留在源文件中。Batocera 补丁后�
 `tools/build-usb-loader.py` 从 [Rockchip 官方 rkbin 固定提交](https://github.com/rockchip-linux/rkbin/tree/3e288fe814e059dd06833495f845cab04ac20a5c) 下载 `RK3288MINIALL.ini`、DDR、usbplug、miniloader 和 `boot_merger`，核对 SHA-256，并保存该提交的 [LICENSE](https://github.com/rockchip-linux/rkbin/blob/3e288fe814e059dd06833495f845cab04ac20a5c/LICENSE)。生成包保留 `RKBIN-LICENSE.txt` 和来源清单；上游二进制不改用本项目 MIT 许可，也不提交到仓库。
 
 RKDevTool 2.96 和 Rockchip Driver Assistant 由用户从厂商工具下载站另行取得，按各自许可使用，不包含在仓库中。CFG 格式依据 RKDevTool 2.96 实际配置文件、附带手册和格式检查实现。
+
+## AP6335 / BCM4339 Wi-Fi NVRAM
+
+`tools/prepare_wifi_firmware.py` 从 [radxa/rkwifibt 固定提交 b61a1e8499a4f1956ef417cbcfaa6c2cf805ce08](https://github.com/radxa/rkwifibt/tree/b61a1e8499a4f1956ef417cbcfaa6c2cf805ce08) 下载 `firmware/broadcom/AP6335/wifi/nvram_AP6335.txt`，SHA-256 为 `9f6dbebb3f0b078831de6d0998e8bdbae421015beeabb22d3774f5c66b99a326`。该文件在上游导入提交 `fe32b4846ce7fc14a73a9922e397b906fadd7868` 中由 Rockchip 工程师签署来源。
+
+下载包同时保留固定提交的根 `LICENSE`（Rockchip 2022 BSD 三条款，SHA-256 为 `ec1dabfa95bf2e8f0de4311a9ceacfd841c45a772bf7eab3aa4c121284616df2`），保存为 `firefly-wifi/LICENSE.rkwifibt`。NVRAM 文件自身未声明独立许可；这里记录上游仓库许可与来源，不将其改用本项目 MIT 许可，也不将该许可推广到 Broadcom 固件二进制。厂商 NVRAM 不提交到本仓库，准备器按固定 hash 获取；已有 Batocera BCM4339 固件二进制继续适用原发行版的许可。
+
+本项目新增的早期启动 hook 保持校准参数，只将上游示例 MAC 换为保留的合法板卡 MAC，或由有效 CPU 序列号、板载 eMMC CID 派生的本地管理地址；TF 卡 CID 不参与回退。生成包的来源和校验清单位于 `firefly-wifi/manifest.json`，生成镜像清单记录相同来源。
 
 ## 项目名称和素材
 

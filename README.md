@@ -8,7 +8,7 @@
 
 已完成 U-Boot 和设备树编译、镜像组装及文件检查，并在一块原版 Firefly-RK3288 上完成 eMMC 启动验证。该板原系统为 Linux；先前 TF 卡尝试仍进入原 Linux，尚未确认原因，不能据此认定原版 Firefly 不支持 TF 启动。
 
-用户报告手柄可用，尚未提供型号、接口和游戏内测试细节。现场已通过有线 SSH 验证网络可用，并确认 SHARE 分区已扩容至约 10.5 GiB。板载 **Wi-Fi 当前不可用**：SDIO 初始化出现供电 / OCR 错误，没有枚举到无线设备，详见 [Wi-Fi 已知问题](docs/WIFI.md)。其他外设、游戏、音频和游戏文件网络传输尚未单独验证，详见 [测试记录](docs/TESTING.md)。添加游戏的方法见 [传输游戏与 BIOS](docs/TRANSFER-GAMES.md)，退出游戏等操作见 [手柄操作](docs/CONTROLS.md)。
+用户报告手柄可用，尚未提供型号、接口和游戏内测试细节。现场已通过有线 SSH 验证网络可用，并确认 SHARE 分区已扩容至约 10.5 GiB。修正 SDIO 设备树及 AP6335 板级 NVRAM 后，**Wi-Fi 已通过一次软件重启验证：自动恢复 BCM4339、无线接口、扫描和系统网络列表**。连接路由器、频段覆盖和传输速度尚未验证，详见 [Wi-Fi 修复与验证](docs/WIFI.md)。其他外设、游戏、音频和游戏文件网络传输尚未单独验证，详见 [测试记录](docs/TESTING.md)。添加游戏的方法见 [传输游戏与 BIOS](docs/TRANSFER-GAMES.md)，退出游戏等操作见 [手柄操作](docs/CONTROLS.md)。
 
 本仓库提供适配源码、构建配方、启动配置和分段烧录包生成脚本；完整镜像需要从官方基础镜像自行组装。目前没有发布可下载的整盘镜像，也不随仓库分发 Windows 烧录工具 EXE。系统根文件中的各软件组件由其各自上游维护。
 
@@ -22,7 +22,7 @@
 | 设备树 | Linux v6.1.55 Firefly DTS，加 Batocera RK3288 相关 DTS 补丁 |
 | 显示与音频配置 | HDMI、I2S、HDMI simple-audio-card；完整功能仍待测试 |
 | eMMC 版本 | U-Boot 扫描 `mmc0`；Linux 启用 eMMC 与 SD；已确认启动 |
-| SD 实验版本 | U-Boot 扫描 `mmc1`；Linux 禁用 eMMC；尚未确认启动 |
+| SD 实验版本 | U-Boot 扫描 `mmc1`；Linux 禁用 eMMC；启动及 Wi-Fi 均未验证 |
 | CPU | 保留上游最高 1.608 GHz 配置 |
 
 上述 `mmc0` / `mmc1` 是本项目主线 U-Boot 的设备树别名，不能套用到板上未知的旧 U-Boot。启动分区板型标识为 `firefly-rk3288`，避免自动匹配 MiQi 的系统更新。
@@ -41,11 +41,15 @@ docker run --rm --user "$(id -u):$(id -g)" \
 
 生成的是普通整盘 `.img`，不是 Rockchip RKFW `update.img`。eMMC 写入使用 RKDevTool 2.96 的“下载镜像”和分段地址配置，详见 [eMMC 烧录步骤](docs/FLASHING-EMMC.md)。写入会覆盖板载原系统与用户分区，请先备份需要保留的数据。
 
+组装脚本默认下载并校验固定来源的 AP6335 NVRAM，加入开机早期安装流程；离线构建可先准备文件包，再通过 `--wifi-firmware` 指定，见 [Wi-Fi 说明](docs/WIFI.md)。
+
 本次验证的旧 Loader 版本为 `2.3a`。手动选择 EMMC 会报“Loader不支持切换”；成功流程先读取 FlashID 和 Flash 信息确认默认介质，再将各行“存储”列留空写入。不要跳过介质和容量检查。
 
 ## SD 实验流程
 
 SD 版本构建方法见 [构建说明](docs/BUILD.md)，通过 `./build-boot-assets.sh sd` 和 `make-image.py --variant sd ...` 选择。不要将两个版本的引导产物混用。
+
+本次 Wi-Fi 修复验证仅覆盖 eMMC 安装。SD 版本禁用了 eMMC；若该板也没有有效 CPU / 设备树序列号，开机脚本无法取得备用 MAC 标识，会拒绝安装 NVRAM，详见 [Wi-Fi 验证范围](docs/WIFI.md)。
 
 1. 用 balenaEtcher 把 SD 版本 `.img` 或 `.img.gz` 写入可靠 TF 卡；至少 8 GB，建议 16 GB 或更大。写入会清空目标卡。
 2. 板子断电插卡，接 HDMI、USB 键盘或手柄，建议接网线，并使用适合该板的电源与散热。

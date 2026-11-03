@@ -10,6 +10,9 @@ import shutil
 import stat
 import struct
 import subprocess
+import tempfile
+
+from tools.prepare_wifi_firmware import prepare_bundle, validate_bundle, install_into_image
 
 BASE_SHA256 = '4280732daf9fb32ee59f56f727134c5a5e5c8a2b64add593a5e8e50c78654a01'
 PACKAGE = Path(__file__).resolve().parent
@@ -48,7 +51,7 @@ def validate_assets(assets, variant):
     return manifest
 
 
-def patch_image(image, assets):
+def patch_image(image, assets, wifi_bundle):
     image = Path(image)
     regular(image)
     if image.stat().st_size != IMAGE_SIZE:
@@ -82,6 +85,7 @@ def patch_image(image, assets):
     ]:
         subprocess.run(['mcopy', '-o', '-i', drive, str(source), target], check=True)
     subprocess.run(['mdel', '-i', drive, '::/boot/rk3288-miqi.dtb'], check=True)
+    install_into_image(image, BOOT_OFFSET, wifi_bundle)
     # Verify both low-level loader copies and MBR after the filesystem edits.
     with image.open('rb') as f:
         if f.read(512) != mbr: raise ValueError('MBR changed')
@@ -95,6 +99,8 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--variant', choices=['sd', 'emmc'], default='sd',
                    help='Storage variant built by build-boot-assets.sh (default: sd)')
+    p.add_argument('--wifi-firmware', type=Path, metavar='BUNDLE_DIR',
+                   help='Verified bundle from tools/prepare_wifi_firmware.py; otherwise download pinned NVRAM')
     p.add_argument('official_base_gz', type=Path)
     p.add_argument('output_img', type=Path)
     a = p.parse_args()
@@ -113,12 +119,22 @@ def main():
     except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError) as error:
         p.error(f'{error}; run ./build-boot-assets.sh {a.variant}')
     if sha256(a.official_base_gz) != BASE_SHA256: p.error('Base SHA-256 does not match')
-    with gzip.open(a.official_base_gz, 'rb') as src, a.output_img.open('xb') as dst:
-        shutil.copyfileobj(src, dst, 4 * 1024 * 1024)
-    patch_image(a.output_img, assets)
+    with tempfile.TemporaryDirectory(prefix='firefly-wifi-') as temporary:
+        bundle = a.wifi_firmware
+        try:
+            if bundle is None:
+                bundle = Path(temporary) / 'bundle'
+                wifi_manifest = prepare_bundle(bundle)
+            else:
+                wifi_manifest = validate_bundle(bundle)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            p.error(f'Wi-Fi bundle: {error}')
+        with gzip.open(a.official_base_gz, 'rb') as src, a.output_img.open('xb') as dst:
+            shutil.copyfileobj(src, dst, 4 * 1024 * 1024)
+        patch_image(a.output_img, assets, bundle)
     image_hash = sha256(a.output_img)
     result = {'image': a.output_img.name, 'variant': a.variant, 'size_bytes': IMAGE_SIZE,
-              'sha256': image_hash, 'boot_assets': manifest}
+              'sha256': image_hash, 'boot_assets': manifest, 'wifi_firmware': wifi_manifest}
     with sidecar.open('x', encoding='utf-8') as output:
         output.write(json.dumps(result, indent=2) + '\n')
     print(image_hash, a.output_img)

@@ -16,6 +16,8 @@ docker run --rm --user "$(id -u):$(id -g)" \
   batocera-rk3288-miqi-39-20240301.img.gz emmc.img
 ```
 
+`make-image.py` 默认下载并校验固定来源的 AP6335 NVRAM，将早期安装脚本及配置加入镜像。离线使用可先执行 `python3 tools/prepare_wifi_firmware.py wifi-bundle`，再在上述组装命令中增加 `--wifi-firmware wifi-bundle`。来源、启动机制和实际验证范围见 [Wi-Fi 修复与验证](WIFI.md)。
+
 需要进入 MaskROM 的 RAM 下载阶段时，按构建说明生成固定 Rockchip rkbin 来源的 `rk3288_loader_v1.12.263.bin`。然后生成分段文件与 RKDevTool 配置：
 
 ```sh
