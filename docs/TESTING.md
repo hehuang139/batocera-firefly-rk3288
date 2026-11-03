@@ -43,6 +43,12 @@ bc38fe7350c18f157a6d835cc88ce5b1e725ee05a2d1d4587a95815f413bfaca
 
 这些值标识此次测试文件。重新构建时工具链版本、构建时间或 FAT 写入时间可能改变最终文件哈希；不能把新生成文件与历史测试文件的逐字节差异直接等同于启动故障。
 
+## 2026-11-04：第二块板的 MaskROM RAM Loader 存储读取
+
+用户提供的 RKDevTool 2.96 截图确认：下载本项目 `rk3288_loader_v1.12.263.bin` 到 RAM 后，工具仍显示 MASKROM，读取 FlashID 和 Flash 信息成功。FlashID 为 `45 4D 4D 43 20`（ASCII `EMMC `）；Flash 信息显示 Samsung、14910 MB、总扇区数 `0x1d1f000`、Block 512 KB、Page 2 KB。
+
+此证据确认该 RAM Loader 在第二块板上能够访问默认 eMMC。截图覆盖范围仅到存储读取，尚未确认第二块板的镜像写入、回读校验或 Batocera 启动，不扩展首块板的外设验证范围；本流程不要求先擦除设备。
+
 ## 功能验收进度
 
 | 项目 | 当前进度 |

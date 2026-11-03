@@ -48,9 +48,13 @@ Windows 工具需另外下载，仓库和脚本输出不包含 EXE：
 
 1. 打开“下载镜像”，在表格空白处右键“导入配置”，选择 `01-usb-loader-ram.cfg`。
 2. 检查唯一勾选的行名必须是 **`LoaderToDDR`**，路径指向 `Image\rk3288_loader_v1.12.263.bin`。
-3. 点“执行”，等待工具识别为 LOADER。
+3. 点“执行”，确认本次日志显示“下载 Boot 成功”。工具可能随后显示“等待 Maskrom 成功”，底部仍显示 MASKROM；这与 RAM 下载方式兼容，不要求状态文字变成 LOADER。
 
-`LoaderToDDR` 将 USB Loader 下载到 RAM，不写设备存储。特殊行名 `Loader` 会执行持久 IDBlock 写入，含义不同，不能互换。主线 `idbloader.img` 是镜像内的存储引导文件，也不能当作此处的 USB 下载 Loader。此次已启动设备使用原来的 Loader `2.3a`，不代表 MaskROM RAM 阶段已在该板单独验证。
+下载成功后，保持供电和 USB 连接，直接按下一节读取 FlashID 和 Flash 信息。以实际读取成功、介质为 eMMC 且容量足够作为继续条件；仅有“下载 Boot 成功”或底部模式文字，仍不足以证明存储访问已正常。不要为改变模式文字而执行“擦除所有”、切换持久 `Loader` 行或反复下载其他来源的 Loader。
+
+`LoaderToDDR` 将 USB Loader 下载到 RAM，不写设备存储。特殊行名 `Loader` 会执行持久 IDBlock 写入，含义不同，不能互换。主线 `idbloader.img` 是镜像内的存储引导文件，也不能当作此处的 USB 下载 Loader。首块已启动设备通过原有下载环境完成写入；2026-11-04，用户截图确认另一块板在下载本项目 RAM Loader 后，底部仍显示 MASKROM，FlashID 和 Flash 信息均读取成功：默认介质为 Samsung eMMC、14910 MB。第二块板此时仅验证到 RAM Loader 的存储读取，尚未验证镜像写入或启动，见 [测试记录](TESTING.md)。
+
+不要用 `Loader Ver: 2.3a` 单独判断下载是否生效：固定 `RK3288MINIALL.ini` 的包版本是 `MAJOR=2`、`MINOR=58`（十六进制 `3a`），与该显示一致；文件名中的 `v1.12.263` 表示 DDR / usbplug 部件版本。包版本、部件版本和底部 MASKROM / LOADER 模式文字含义不同。
 
 ## 先读取默认介质，再写入
 
@@ -89,6 +93,7 @@ Windows 工具需另外下载，仓库和脚本输出不包含 EXE：
 ## 来源与复现范围
 
 - RKDevTool 随附《开发工具用户手册》说明 `LoaderToDDR` / `Loader` 的区别及按地址烧写。
+- 该手册第 3 页说明 MaskROM 设备先下载 Boot，且下载过程不写设备存储；第 9 页的多存储操作仍要求处于 MaskROM 并已下载 Boot。这些说明支持 RAM Boot 已下载后仍使用 MASKROM 模式，不要求先变成 LOADER。手册第 8 页介绍的是可选擦除功能，不是本流程的必要步骤。
 - 临时 USB Loader 来源为 [Rockchip rkbin 固定提交 `3e288fe814e059dd06833495f845cab04ac20a5c`](https://github.com/rockchip-linux/rkbin/tree/3e288fe814e059dd06833495f845cab04ac20a5c)，输入与输出哈希由生成步骤记录。
 - eMMC 与 SD 选择来自本项目主线 U-Boot 的 `mmc0` / `mmc1` 别名；不能据此推断板上旧 Loader 的启动优先级。
 - 本次验证为一块原版板卡的 eMMC 启动成功，更多外设与功能结果持续记入 [测试记录](TESTING.md)。
