@@ -8,6 +8,14 @@ set -euo pipefail
 
 fail() { echo "Firefly AP6335: $*" >&2; exit 1; }
 boot_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+network_helper="$boot_dir/firefly-network-identity.sh"
+if [[ -f $network_helper && ! -L $network_helper ]]; then
+    if ! bash "$network_helper" start; then
+        echo 'Firefly: Ethernet identity setup failed; continuing Wi-Fi setup' >&2
+    fi
+else
+    echo 'Firefly: missing regular Ethernet identity helper; continuing Wi-Fi setup' >&2
+fi
 nvram="$boot_dir/firefly-wifi/nvram_AP6335.txt"
 expected=9f6dbebb3f0b078831de6d0998e8bdbae421015beeabb22d3774f5c66b99a326
 [[ -f $nvram && ! -L $nvram ]] || fail "missing regular NVRAM file: $nvram"

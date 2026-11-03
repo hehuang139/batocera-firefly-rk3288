@@ -23,6 +23,7 @@ FILES = {
     },
 }
 HOOK = PACKAGE / 'tools' / 'firefly-boot-custom.sh'
+NETWORK_HELPER = PACKAGE / 'tools' / 'firefly-network-identity.sh'
 
 
 def digest(data):
@@ -51,12 +52,15 @@ def prepare_bundle(destination):
         records[name] = dict(record, size_bytes=len(data))
     hook = read_regular(HOOK)
     (destination / 'boot-custom.sh').write_bytes(hook)
+    network_helper = read_regular(NETWORK_HELPER)
+    (destination / 'firefly-network-identity.sh').write_bytes(network_helper)
     manifest = {
         'board': 'firefly,firefly-rk3288', 'module': 'AP6335 / BCM4339',
         'upstream': UPSTREAM, 'commit': COMMIT,
         'upstream_import_commit': 'fe32b4846ce7fc14a73a9922e397b906fadd7868',
         'license': 'Upstream root LICENSE (Rockchip BSD-3-Clause); see THIRD_PARTY_NOTICES.md',
         'files': records, 'boot_hook_sha256': digest(hook),
+        'network_helper_sha256': digest(network_helper),
         'target': '/lib/firmware/brcm/brcmfmac4339-sdio.firefly,firefly-rk3288.txt',
     }
     (firmware / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
@@ -79,6 +83,10 @@ def validate_bundle(destination):
     hook = read_regular(destination / 'boot-custom.sh')
     if hook != read_regular(HOOK) or manifest.get('boot_hook_sha256') != digest(hook):
         raise ValueError('Wi-Fi bundle boot hook differs from this recipe; prepare a fresh bundle')
+    network_helper = read_regular(destination / 'firefly-network-identity.sh')
+    if (network_helper != read_regular(NETWORK_HELPER) or
+            manifest.get('network_helper_sha256') != digest(network_helper)):
+        raise ValueError('Network identity helper differs from this recipe; prepare a fresh bundle')
     return manifest
 
 
@@ -101,6 +109,13 @@ def install_into_image(image, boot_offset, destination):
     hook = destination / 'boot-custom.sh'
     if 'boot-custom.sh' in root and read(hook_target) != read_regular(hook):
         raise ValueError('Existing /boot/boot-custom.sh conflicts with the Firefly Wi-Fi hook')
+    network_target = '::/firefly-network-identity.sh'
+    network_helper = destination / 'firefly-network-identity.sh'
+    if ('firefly-network-identity.sh' in root and
+            read(network_target) != read_regular(network_helper)):
+        raise ValueError('Existing /boot/firefly-network-identity.sh conflicts with this recipe')
+    if 'firefly-network.conf' in root:
+        raise ValueError('Private /boot/firefly-network.conf must not be included in a generic image')
     firmware_names = ('nvram_AP6335.txt', 'LICENSE.rkwifibt', 'manifest.json')
     if 'firefly-wifi' in root:
         existing = entries('::/firefly-wifi/')
@@ -112,7 +127,7 @@ def install_into_image(image, boot_offset, destination):
                 raise ValueError(f'Existing /boot/firefly-wifi/{name} conflicts with the pinned bundle')
     else:
         subprocess.run(['mmd', '-i', drive, '::/firefly-wifi'], check=True)
-    files = [(hook, hook_target)] + [
+    files = [(hook, hook_target), (network_helper, network_target)] + [
         (destination / 'firefly-wifi' / name, f'::/firefly-wifi/{name}') for name in firmware_names
     ]
     for source, target in files:

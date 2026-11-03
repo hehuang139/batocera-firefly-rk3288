@@ -4,7 +4,7 @@
 
 ## 本项目新增内容
 
-MIT 适用于 `make-image.py`、`package-rkdevtool.py`、`collect-logs.sh`、`build-boot-assets.sh`、`tools/*.py`、`tools/firefly-boot-custom.sh`、`source/write-boot-manifest.py`、`source/rebuild-u-boot.sh`、`source/build-dtb.sh`、`source/Dockerfile`、各版本 `extlinux.conf` 以及项目说明文档。Firefly wrapper DTS 继续使用文件头的双重许可；U-Boot 派生配置继续使用上游许可。
+MIT 适用于 `make-image.py`、`package-rkdevtool.py`、`collect-logs.sh`、`build-boot-assets.sh`、`tools/*.py`、`tools/firefly-boot-custom.sh`、`tools/firefly-network-identity.sh`、`source/write-boot-manifest.py`、`source/rebuild-u-boot.sh`、`source/build-dtb.sh`、`source/Dockerfile`、各版本 `extlinux.conf` 以及项目说明文档。Firefly wrapper DTS 继续使用文件头的双重许可；U-Boot 派生配置继续使用上游许可。
 
 许可全文位于 `LICENSE` 和 `LICENSES/`。
 
@@ -55,6 +55,8 @@ RKDevTool 2.96 和 Rockchip Driver Assistant 由用户从厂商工具下载站�
 下载包同时保留固定提交的根 `LICENSE`（Rockchip 2022 BSD 三条款，SHA-256 为 `ec1dabfa95bf2e8f0de4311a9ceacfd841c45a772bf7eab3aa4c121284616df2`），保存为 `firefly-wifi/LICENSE.rkwifibt`。NVRAM 文件自身未声明独立许可；这里记录上游仓库许可与来源，不将其改用本项目 MIT 许可，也不将该许可推广到 Broadcom 固件二进制。厂商 NVRAM 不提交到本仓库，准备器按固定 hash 获取；已有 Batocera BCM4339 固件二进制继续适用原发行版的许可。
 
 本项目新增的早期启动 hook 保持校准参数，只将上游示例 MAC 换为保留的合法板卡 MAC，或由有效 CPU 序列号、板载 eMMC CID 派生的本地管理地址；TF 卡 CID 不参与回退。生成包的来源和校验清单位于 `firefly-wifi/manifest.json`，生成镜像清单记录相同来源。
+
+本项目的 `tools/firefly-network-identity.sh` 按 MIT 许可发布，以独立哈希前缀派生有线 MAC。单板覆盖文件 `firefly-network.conf` 包含板卡身份及选定 MAC，属于本地配置，不随通用镜像或仓库分发；稳定身份机制不包含 DHCP 服务器地址保留功能。
 
 ## 项目名称和素材
 

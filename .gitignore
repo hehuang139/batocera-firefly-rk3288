@@ -21,3 +21,4 @@ __pycache__/
 /*.img.manifest.json
 /out/
 /wifi-firmware/
+firefly-network.conf

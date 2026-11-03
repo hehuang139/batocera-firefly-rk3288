@@ -1,10 +1,10 @@
 # Wi-Fi：修复与验证
 
-2026-11-04，在原版 Firefly-RK3288 的 eMMC 安装上，修正设备树并补充 AP6335 板级 NVRAM 后，**无线枚举、扫描和一次软件重启后的自动恢复均已验证**。重启后启动 ID 改变，板级 NVRAM 自动出现，SDIO、`wlan0` 与 BCM4339/2 固件 `6.37.39.113` 正常初始化；`connmanctl scan wifi` 完成，发现 17 个无线服务（重启前为 20 个）。
+2026-11-04，在原版 Firefly-RK3288 的 eMMC 安装上，修正设备树、补充 AP6335 板级 NVRAM 并加入有线身份更新后，**已验证一次软件重启后的 Wi-Fi 自动关联、DHCP IPv4 和无线 SSH**。启动 ID 确认改变，板级 NVRAM 自动安装，SDIO、`wlan0` 与 BCM4339/2 固件 `6.37.39.113` 正常初始化。驱动修复后的扫描也已通过：`connmanctl scan wifi` 完成，发现 17 个无线服务。
 
 Batocera 的 `wifi.enabled = 1`，`batocera-wifi list` 已能输出非空无线网络列表。用户配置网络后，ConnMan 显示 `Connected = true`、`Tethering = false`，`wlan0` 为 UP 并取得 DHCP IPv4；通过该无线地址完成 SSH 登录，主机密钥与同一块板匹配，当时有线接口没有 IPv4。
 
-关联与无线 SSH 测试发生在同一启动周期，**尚未验证关联配置在重启后自动恢复**；此前一次软件重启验证的是 NVRAM、驱动和扫描恢复。2.4 / 5 GHz 各频段、吞吐量、游戏文件传输、长期稳定性及多次冷启动仍未验收。传输步骤见 [传输游戏](TRANSFER-GAMES.md)。
+重启后，有线和无线 MAC 均与部署前备份完全一致，本次无线 IP 也相同。当时网线未连接，`carrier = 0`，因此没有验证更新后的有线 DHCP 地址。2.4 / 5 GHz 各频段、吞吐量、游戏文件传输、长期稳定性及多次冷启动仍未验收；一次 DHCP 地址复用也不能证明地址永久固定。传输步骤见 [传输游戏](TRANSFER-GAMES.md)。
 
 ## 第一处阻断：SDIO 供电描述与电源时序
 
@@ -38,7 +38,7 @@ SDIO 枚举恢复后，BCM4339 固件初始化还需要对应板卡的 NVRAM 文
 python3 tools/prepare_wifi_firmware.py wifi-bundle
 ```
 
-准备器生成 `boot-custom.sh` 与 `firefly-wifi/` 目录，后者包含 `nvram_AP6335.txt`、`LICENSE.rkwifibt` 和 `manifest.json`。部署到启动分区后，由 `S00bootcustom` 在 udev 之前调用 `/boot/boot-custom.sh`，把 NVRAM 安装为 `/lib/firmware/brcm/brcmfmac4339-sdio.firefly,firefly-rk3288.txt`，避免内存根文件系统中的手工复制在重启后消失或驱动先于配置加载。已有自定义 `boot-custom.sh` 的系统需要先合并原有逻辑，不能直接覆盖。
+准备器生成 `boot-custom.sh`、`firefly-network-identity.sh` 与 `firefly-wifi/` 目录，后者包含 `nvram_AP6335.txt`、`LICENSE.rkwifibt` 和 `manifest.json`。部署到启动分区后，由 `S00bootcustom` 在 udev 之前调用 `/boot/boot-custom.sh`，先运行有线身份辅助脚本，再把 NVRAM 安装为 `/lib/firmware/brcm/brcmfmac4339-sdio.firefly,firefly-rk3288.txt`，避免内存根文件系统中的手工复制在重启后消失或驱动先于配置加载。有线辅助脚本失败会记录错误并继续 Wi-Fi 安装。已有自定义 `boot-custom.sh` 的系统需要先合并原有逻辑，不能直接覆盖。
 
 `make-image.py` 默认在临时目录自动下载并校验这份文件包，再把开机文件加入镜像；预先下载后可离线组装：
 
@@ -57,13 +57,29 @@ python3 make-image.py --variant emmc --wifi-firmware wifi-bundle \
 
 本次现场修复范围是 **eMMC 版本**。SD 版本的 DTS 虽然也编译通过，但其 Linux 配置禁用 eMMC；在同样缺少有效 CPU / 设备树序列号的板上，无法取得 eMMC CID，脚本会拒绝生成备用 MAC。TF 卡 CID 不作为替代来源，不能据此宣称 SD 版本 Wi-Fi 已可用。
 
-对应整盘镜像已完成组装、FAT 文件回读和 RKDevTool 六段生成 / 重组校验；重组 SHA-256 与完整镜像相同。现场是在历史 `emmc-test1` 安装上部署相同 DTB 和早期文件，随后通过一次软件重启验证自动恢复。新整盘镜像尚未另行完整烧录上板，文件验证与现场更新验证的范围应分别理解。
+包含 Wi-Fi 修复与有线身份辅助脚本的当前整盘镜像已完成组装、FAT 文件回读和 RKDevTool 六段生成 / 重组校验；重组 SHA-256 与完整镜像相同。现场是在历史 `emmc-test1` 安装上部署相同 DTB 和早期文件，通过一次软件重启验证有线与无线 MAC 保持一致、Wi-Fi 自动关联和无线 SSH 正常。新整盘镜像尚未另行完整烧录上板，文件验证与现场更新验证的范围应分别理解。
 
 ## 有线与无线 IP
 
 有线 `eth0` 与无线 `wlan0` 是不同网卡，各自通过 DHCP 获取地址。切换到 Wi-Fi 后应查看 `ip -4 address show wlan0`；不能继续假定先前的有线 IP 就是无线 IP。
 
-当前镜像还观察到有线 MAC 在不同启动间变化。U-Boot 配置启用 `CONFIG_NET_RANDOM_ETHADDR=y`，同时使用不持久化的 `CONFIG_ENV_IS_NOWHERE=y`；运行设备树中的有线 MAC 也随启动变化，路由器因而可能将其视为新设备。此有线身份问题尚未修复。需要固定无线 IP 时，可在路由器中为已确认稳定的无线 MAC 设置 DHCP 地址保留；有线应先固定 MAC，再保留地址。
+此前观察到有线 MAC 在不同启动间变化。U-Boot 配置启用 `CONFIG_NET_RANDOM_ETHADDR=y`，同时使用不持久化的 `CONFIG_ENV_IS_NOWHERE=y`；运行设备树中的有线 MAC 也随启动变化，DHCP 服务器因而可能将其视为新设备。
+
+[`tools/firefly-network-identity.sh`](../tools/firefly-network-identity.sh) 在 ConnMan 启动前，为 `eth0` 设置稳定的本地管理单播 MAC，默认以有效 CPU 序列号或唯一 MMC CID 为依据，使用与无线备用地址不同的哈希前缀。它只在地址不同、接口尚未启用且 ConnMan 尚未运行时修改，避免中断在线连接。现场保留原有租约身份的覆盖配置已部署，并通过一次软件重启验证：有线 MAC 与部署前备份完全一致，无线硬件 MAC 也保持一致，Wi-Fi 自动关联且无线 SSH 可用。当时有线 `carrier = 0`，没有验证有线联网或 DHCP 地址。
+
+本修复在 Linux 层设置接口地址，不修改 U-Boot 的随机地址行为。现场重启后，运行设备树中的有线 MAC 与 Linux 当前接口 MAC 不同，`/sys/class/net/eth0/addr_assign_type` 为 `3`（软件设置），后者与部署前地址一致。验收应读取当前 Linux 接口地址，不能只查看运行设备树。
+
+可选的 `/boot/firefly-network.conf` 只接受 `board_id` 与 `ethernet_mac`，按严格字段解析而非作为 shell 执行；`board_id` 必须与本板身份匹配。以下命令只读取并输出板卡身份指纹：
+
+```sh
+bash /boot/firefly-network-identity.sh print-identity
+```
+
+该私有配置用于单板保留既有有线 MAC，不应提交到仓库或复制到其他板卡；通用镜像安装器会拒绝包含它。通用构建使用每板派生地址，不包含现场 MAC 或网络地址。
+
+**稳定 MAC 不保证 DHCP 永远分配同一 IP。** 要求地址固定时，应在 DHCP 服务器中分别为稳定有线 MAC 和无线 MAC 保留两个不同地址，再逐接口重启验收。当前地址保留尚未完成；未知 DHCP 地址池时不要直接把当前动态地址锁为静态地址。
+
+Batocera 原有的 `SingleConnectedTechnology=true` 和有线优先策略保持不变。插拔网线可能改变活动接口，应分别验证有线和无线的 MAC、租约及连接，不能把其中一个接口的地址变化直接视为另一个接口失败。
 
 ## 回退现场更新
 
@@ -72,6 +88,8 @@ python3 make-image.py --variant emmc --wifi-firmware wifi-bundle \
 若原系统没有自定义开机脚本、当前 `/boot/boot-custom.sh` 完全由本项目提供，可将它改名为 `boot-custom.sh.disabled` 保留备份，使开机不再安装 NVRAM。已有其他自定义逻辑时应仅撤销本项目调用，保留原脚本；不要覆盖已有的同名备份。
 
 完成后执行 `sync`，将 `/boot` 重新挂载为只读，再重启。回退不需要改写整盘镜像，也不修改 eMMC boot0 / boot1。
+
+仅回退有线身份更新时，在 `/boot` 可写期间，从本次部署前的备份同时恢复 `/boot/boot-custom.sh` 和 `/boot/firefly-wifi/manifest.json`，以保留已验证的 Wi-Fi 流程及与之匹配的清单。确认恢复后的启动脚本不再调用有线身份辅助脚本；专用 `firefly-network-identity.sh` 和私有 `firefly-network.conf` 可保留为不再调用的文件，不必删除。随后 `sync`、重新挂载只读并重启。不要在当前连接已启用时强行改回有线 MAC。
 
 ## 排查命令与结果判读
 

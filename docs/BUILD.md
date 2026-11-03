@@ -43,7 +43,7 @@ docker run --rm --user "$(id -u):$(id -g)" \
 
 脚本核对引导清单、DTB 的 eMMC 状态和基础 SHA-256，输出新的普通 `.img` 及 `.img.manifest.json`，拒绝覆盖已有路径，不接受块设备。保留官方内核、initrd、SquashFS 和 SHARE 分区，替换引导区、DTB、extlinux、板型标识，加入日志脚本。
 
-组装时默认在临时目录下载固定来源的 AP6335 NVRAM 和许可证，校验哈希后将 `boot-custom.sh` 与 `firefly-wifi/` 加入 FAT 启动分区。早期脚本在 udev 之前安装板级 NVRAM，来源及实际哈希另记入镜像旁清单的 `wifi_firmware` 字段。启动机制、MAC 处理和实际验证范围见 [Wi-Fi 修复与验证](WIFI.md)。
+组装时默认在临时目录下载固定来源的 AP6335 NVRAM 和许可证，校验哈希后将 `boot-custom.sh`、`firefly-network-identity.sh` 与 `firefly-wifi/` 加入 FAT 启动分区。早期脚本在 ConnMan 前设置稳定有线 MAC，并在 udev 前安装板级 NVRAM；来源及辅助脚本哈希记入镜像旁清单的 `wifi_firmware` 字段。启动机制、MAC 处理和实际验证范围见 [Wi-Fi 修复与验证](WIFI.md)。
 
 如需复用已下载文件或离线组装，先在联网环境准备新目录，再把它传给组装脚本；脚本仍会核验文件包与当前准备器是否匹配：
 
@@ -56,6 +56,8 @@ docker run --rm --user "$(id -u):$(id -g)" \
 ```
 
 上述准备命令只生成普通文件包，不会写入开发板。现有系统如已有自定义 `boot-custom.sh`，更新时应先合并原有逻辑，不要直接覆盖。
+
+通用镜像不能包含私有 `/boot/firefly-network.conf`；安装器发现它会拒绝组装，避免把某块板的 MAC 配置复制给其他设备。辅助脚本默认从 CPU 序列号或唯一 MMC CID 派生稳定有线 MAC；稳定 MAC 仍需配合 DHCP 地址保留才能保证固定 IP，不会把现场网络地址写入通用镜像。
 
 SD 镜像将参数改为 `--variant sd`，并使用不同输出文件名。可用 `gzip -1 -n sd.img` 压缩后交给写卡工具；RKDevTool 打包需要未压缩的 eMMC `.img`。
 
@@ -95,4 +97,4 @@ USB Loader 来自 Rockchip `rkbin` 固定提交 `3e288fe814e059dd06833495f845cab
 
 从 [Radxa 工具目录](https://dl.radxa.com/tools/windows/) 获取 RKDevTool 2.96 和 Driver Assistant 5.14，将 `out/rkdevtool/` 内的 `Image/` 和 CFG 放到 RKDevTool.exe 所在目录，按 [eMMC 烧录说明](FLASHING-EMMC.md) 操作。输出不是 RKFW `update.img`，不用于“升级固件”。Windows 工具不随仓库分发。
 
-2026-11-04，两种引导和 Wi-Fi 修正版 DTS 均编译通过；含早期 NVRAM 安装及 MMC CID 回退的 eMMC 整盘镜像已完成组装、FAT 回读和 RKDevTool 六段重组校验，完整镜像与重组 SHA-256 一致。现场在历史 `emmc-test1` 安装上部署相同 DTB 和早期文件，已通过一次软件重启后的 NVRAM 自动安装、无线枚举、扫描和系统网络列表验证。新整盘镜像尚未另行完整烧录上板。历史构建、哈希与实测范围见 [测试记录](TESTING.md)。
+2026-11-04，两种引导和 Wi-Fi 修正版 DTS 均编译通过；包含 Wi-Fi 修复与有线身份辅助脚本的当前 eMMC 镜像已完成组装、FAT 回读和六段重组校验，重组 SHA-256 与完整镜像一致。现场等价文件更新通过一次软件重启：有线和无线 MAC 与部署前一致，Wi-Fi 自动关联、取得 DHCP IPv4，并可通过无线 SSH 登录。当时网线未连接，有线 DHCP 和两种接口的 DHCP 地址保留尚未验证。新整盘镜像未另行完整烧录上板。历史构建、哈希与实测范围见 [测试记录](TESTING.md)。

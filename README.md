@@ -8,9 +8,11 @@
 
 已完成 U-Boot 和设备树编译、镜像组装及文件检查，并在一块原版 Firefly-RK3288 上完成 eMMC 启动验证。该板原系统为 Linux；先前 TF 卡尝试仍进入原 Linux，尚未确认原因，不能据此认定原版 Firefly 不支持 TF 启动。
 
-用户报告手柄可用，尚未提供型号、接口和游戏内测试细节。现场已通过有线 SSH 验证网络可用，并确认 SHARE 分区已扩容至约 10.5 GiB。修正 SDIO 设备树及 AP6335 板级 NVRAM 后，**Wi-Fi 驱动已通过一次软件重启自动恢复，随后成功关联路由器、取得 DHCP IPv4，并通过无线地址完成 SSH 登录**。无线关联的重启恢复、频段覆盖和传输速度尚未验证，详见 [Wi-Fi 修复与验证](docs/WIFI.md)。其他外设、游戏、音频和游戏文件网络传输尚未单独验证，详见 [测试记录](docs/TESTING.md)。添加游戏的方法见 [传输游戏与 BIOS](docs/TRANSFER-GAMES.md)，退出游戏等操作见 [手柄操作](docs/CONTROLS.md)。
+用户报告手柄可用，尚未提供型号、接口和游戏内测试细节。现场已通过有线 SSH 验证网络可用，并确认 SHARE 分区已扩容至约 10.5 GiB。修正 SDIO 设备树、补充 AP6335 板级 NVRAM 并加入有线身份更新后，已验证**一次软件重启后的 Wi-Fi 自动关联、DHCP IPv4 和无线 SSH**。频段覆盖、传输速度及长期稳定性尚未验证，详见 [Wi-Fi 修复与验证](docs/WIFI.md)。其他外设、游戏、音频和游戏文件网络传输尚未单独验证，详见 [测试记录](docs/TESTING.md)。添加游戏的方法见 [传输游戏与 BIOS](docs/TRANSFER-GAMES.md)，退出游戏等操作见 [手柄操作](docs/CONTROLS.md)。
 
 本仓库提供适配源码、构建配方、启动配置和分段烧录包生成脚本；完整镜像需要从官方基础镜像自行组装。目前没有发布可下载的整盘镜像，也不随仓库分发 Windows 烧录工具 EXE。系统根文件中的各软件组件由其各自上游维护。
+
+开机流程已加入稳定有线 MAC 的辅助脚本，并在一次软件重启后确认有线和无线 MAC 与部署前一致。当时网线未连接，尚未验证更新后的有线 DHCP。固定 MAC 与固定 IP 是两项配置：两种接口需分别设置 DHCP 地址保留，目前尚未完成，见 [网络地址说明](docs/WIFI.md#有线与无线-ip)。
 
 ## 版本与改动
 
@@ -64,6 +66,7 @@ SD 版本构建方法见 [构建说明](docs/BUILD.md)，通过 `./build-boot-as
 - `make-image.py`：校验官方底包并组装指定版本的整盘镜像。
 - `package-rkdevtool.py`：生成普通分段镜像、地址配置和校验清单，不访问设备。
 - `collect-logs.sh`：在 Batocera 中收集启动和硬件状态。
+- `tools/firefly-network-identity.sh`：在 ConnMan 前设置板卡专属的稳定有线 MAC。
 - `source/`：U-Boot 配方、完整配置、Firefly DTS 及其依赖和选定补丁。
 - `boot-assets/`：extlinux 和板型标识；构建后还包含生成的 loader 与 DTB。
 - `docs/`：构建、eMMC 烧录、游戏传输和实际验证记录。
